@@ -12,7 +12,7 @@ npm install
 npm run dev        # http://localhost:3000
 ```
 
-On first run the list is empty. Click **Load sample tasks** to try the app with demo data.
+On first run the list is empty. Click **Load sample tasks** to try the app with demo data. In ```data/```, there are .xlsx files for you to test the import function. 
 
 | Script | What it does |
 | --- | --- |
