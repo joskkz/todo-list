@@ -90,12 +90,15 @@ export default function TodoForm({ editing, defaultDueDate, onCancel, onSubmit }
           ))}
         </Radio.Group>
       </Form.Item>
-      <Form.Item name="dueDate" label="Due date">
-        <DatePicker format="D MMM YYYY" style={{ width: 220 }} placeholder="No due date" />
-      </Form.Item>
-      <Form.Item name="dueTime" label="Time">
-        <TimePicker format={TIME_FORMAT} minuteStep={5} needConfirm={false} style={{ width: 220 }} placeholder="No time" />
-      </Form.Item>
+      {/* Date and time split the full row 50/50. */}
+      <div style={{ display: 'flex', gap: 12 }}>
+        <Form.Item name="dueDate" label="Due date" style={{ flex: 1, minWidth: 0 }}>
+          <DatePicker format="D MMM YYYY" style={{ width: '100%' }} placeholder="No due date" />
+        </Form.Item>
+        <Form.Item name="dueTime" label="Time" style={{ flex: 1, minWidth: 0 }}>
+          <TimePicker format={TIME_FORMAT} minuteStep={5} needConfirm={false} style={{ width: '100%' }} placeholder="No time" />
+        </Form.Item>
+      </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
         <Button onClick={onCancel}>Cancel</Button>
         <Button type="primary" htmlType="submit" loading={saving}>
