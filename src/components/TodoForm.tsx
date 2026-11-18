@@ -37,6 +37,7 @@ interface Props {
 export default function TodoForm({ editing, defaultDueDate, onCancel, onSubmit }: Props) {
   const [form] = Form.useForm<FormFields>();
   const [saving, setSaving] = useState(false);
+  const dueDate = Form.useWatch('dueDate', form);
 
   const initialValues: FormFields = editing
     ? {
@@ -56,7 +57,8 @@ export default function TodoForm({ editing, defaultDueDate, onCancel, onSubmit }
         description: values.description,
         category: values.category,
         dueDate: values.dueDate ? values.dueDate.format(ISO_DATE) : undefined,
-        dueTime: values.dueTime ? values.dueTime.format(TIME_FORMAT) : undefined,
+        // A time only means something on a date.
+        dueTime: values.dueDate && values.dueTime ? values.dueTime.format(TIME_FORMAT) : undefined,
       });
     } finally {
       setSaving(false);
@@ -64,7 +66,18 @@ export default function TodoForm({ editing, defaultDueDate, onCancel, onSubmit }
   }
 
   return (
-    <Form form={form} layout="vertical" requiredMark="optional" initialValues={initialValues} onFinish={handleFinish} style={{ marginTop: 16 }}>
+    <Form
+      form={form}
+      layout="vertical"
+      requiredMark="optional"
+      initialValues={initialValues}
+      onFinish={handleFinish}
+      // Clearing the date also clears the (now hidden) time.
+      onValuesChange={(changed: Partial<FormFields>) => {
+        if ('dueDate' in changed && !changed.dueDate) form.setFieldValue('dueTime', null);
+      }}
+      style={{ marginTop: 16 }}
+    >
       <Form.Item
         name="title"
         label="Title"
@@ -90,14 +103,18 @@ export default function TodoForm({ editing, defaultDueDate, onCancel, onSubmit }
           ))}
         </Radio.Group>
       </Form.Item>
-      {/* Date and time split the full row 50/50. */}
+      {/* Date and time split the row 50/50; time appears once a date is picked. */}
       <div style={{ display: 'flex', gap: 12 }}>
         <Form.Item name="dueDate" label="Due date" style={{ flex: 1, minWidth: 0 }}>
           <DatePicker format="D MMM YYYY" style={{ width: '100%' }} placeholder="No due date" />
         </Form.Item>
-        <Form.Item name="dueTime" label="Time" style={{ flex: 1, minWidth: 0 }}>
-          <TimePicker format={TIME_FORMAT} minuteStep={5} needConfirm={false} style={{ width: '100%' }} placeholder="No time" />
-        </Form.Item>
+        {dueDate ? (
+          <Form.Item name="dueTime" label="Time" style={{ flex: 1, minWidth: 0 }}>
+            <TimePicker format={TIME_FORMAT} minuteStep={5} needConfirm={false} style={{ width: '100%' }} placeholder="No time" />
+          </Form.Item>
+        ) : (
+          <div style={{ flex: 1, minWidth: 0 }} aria-hidden />
+        )}
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
         <Button onClick={onCancel}>Cancel</Button>

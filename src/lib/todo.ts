@@ -37,7 +37,7 @@ const optionalText = (max: number) =>
     .transform((v) => (v ? v : undefined));
 
 /** Shape accepted from the form and from imported rows. */
-export const todoInputSchema = z.object({
+const todoInputObject = z.object({
   title: z.string().trim().min(1, 'Title is required').max(200, 'Title must be 200 characters or fewer'),
   description: optionalText(2000),
   category: z.enum(CATEGORIES, { error: 'Category must be Work, Personal or Urgent' }),
@@ -54,8 +54,17 @@ export const todoInputSchema = z.object({
   completed: z.boolean().optional().default(false),
 });
 
-export type TodoInput = z.input<typeof todoInputSchema>;
-export type ValidTodoInput = z.output<typeof todoInputSchema>;
+export type TodoInput = z.input<typeof todoInputObject>;
+export type ValidTodoInput = z.output<typeof todoInputObject>;
+
+/**
+ * Rule: a time only exists on a date. Without a due date any time (even an
+ * invalid one) is dropped before validation, so it is ignored, not an error.
+ */
+export const todoInputSchema = z.preprocess((raw) => {
+  if (raw && typeof raw === 'object' && !(raw as TodoInput).dueDate) return { ...raw, dueTime: undefined };
+  return raw;
+}, todoInputObject);
 
 export function categoryLabel(c: Category): string {
   return CATEGORY_META[c].label;

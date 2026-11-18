@@ -184,14 +184,15 @@ export function parseImportFile(
     const categoryRaw = cellText(get('category'));
     const category = parseCategory(categoryRaw);
     const due = normaliseDate(get('dueDate'));
-    const time = normaliseTime(get('dueTime'));
+    // A time without a due date is ignored (not an error), as in the task form.
+    const hasDate = due.value !== undefined || due.error !== undefined;
+    const time = hasDate ? normaliseTime(get('dueTime')) : {};
     const completed = normaliseCompleted(get('completed'));
 
     if (!categoryRaw) errors.push('Category is required');
     else if (!category) errors.push(`Unknown category "${categoryRaw}" — use Work, Personal or Urgent`);
     if (due.error) errors.push(due.error);
     if (time.error) errors.push(time.error);
-    else if (time.value && !due.value && !due.error) errors.push('A time needs a due date');
     if (completed.error) errors.push(completed.error);
 
     const input: TodoInput = {
@@ -215,7 +216,7 @@ export function parseImportFile(
       title,
       category: category ? CATEGORY_META[category].label : categoryRaw,
       dueDate: due.value ?? cellText(get('dueDate')),
-      dueTime: time.value ?? cellText(get('dueTime')),
+      dueTime: hasDate ? (time.value ?? cellText(get('dueTime'))) : '',
       completed: completed.value ? 'Done' : 'Open',
     };
     const rowNumber = i + 2;

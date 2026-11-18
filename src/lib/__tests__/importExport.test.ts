@@ -2,7 +2,7 @@ import * as XLSX from 'xlsx';
 import { describe, expect, it } from 'vitest';
 import { buildTasksWorkbook } from '../exportTodos';
 import { normaliseCompleted, normaliseDate, normaliseTime, parseImportFile } from '../importTodos';
-import type { Todo } from '../todo';
+import { todoInputSchema, type Todo } from '../todo';
 import { duplicateKey } from '../todoRepository';
 
 function toBuffer(text: string): ArrayBuffer {
@@ -59,13 +59,29 @@ describe('normaliseTime', () => {
 });
 
 describe('parseImportFile', () => {
-  it('imports a time column and rejects a time without a date', () => {
-    const csv = ['Title,Category,Due Date,Time', 'Standup,Work,2026-11-20,9:30', 'Lunch,Personal,,12:00', 'Bad,Work,2026-11-20,noon'].join('\n');
+  it('imports a time column and ignores a time without a date', () => {
+    const csv = [
+      'Title,Category,Due Date,Time',
+      'Standup,Work,2026-11-20,9:30',
+      'Lunch,Personal,,12:00',
+      'Whenever,Personal,,noon',
+      'Bad,Work,2026-11-20,noon',
+    ].join('\n');
     const { rows } = parseImportFile(toBuffer(csv), 'tasks.csv', new Set(), duplicateKey);
-    expect(rows.map((r) => r.status)).toEqual(['valid', 'invalid', 'invalid']);
+    expect(rows.map((r) => r.status)).toEqual(['valid', 'valid', 'valid', 'invalid']);
     expect(rows[0].input).toMatchObject({ dueDate: '2026-11-20', dueTime: '09:30' });
-    expect(rows[1].errors).toContain('A time needs a due date');
-    expect(rows[2].errors[0]).toMatch(/Invalid time "noon"/);
+    expect(rows[1].input?.dueTime).toBeUndefined();
+    expect(rows[1].display.dueTime).toBe('');
+    expect(rows[2].input?.dueTime).toBeUndefined();
+    expect(rows[3].errors[0]).toMatch(/Invalid time "noon"/);
+  });
+
+  it('drops a time without a date in the task schema', () => {
+    const base = { title: 'X', category: 'work' } as const;
+    expect(todoInputSchema.parse({ ...base, dueTime: '10:00' }).dueTime).toBeUndefined();
+    expect(todoInputSchema.parse({ ...base, dueTime: 'bogus' }).dueTime).toBeUndefined();
+    expect(todoInputSchema.parse({ ...base, dueDate: '2026-11-20', dueTime: '10:00' }).dueTime).toBe('10:00');
+    expect(todoInputSchema.safeParse({ ...base, dueDate: '2026-11-20', dueTime: 'bogus' }).success).toBe(false);
   });
 
   it('validates CSV rows and reports errors with row numbers', () => {

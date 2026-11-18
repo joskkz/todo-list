@@ -3,7 +3,7 @@
 import { EditOutlined, LeftOutlined, MenuFoldOutlined, MenuUnfoldOutlined, PlusOutlined, RightOutlined } from '@ant-design/icons';
 import { App, Button, Calendar as AntCalendar, Checkbox, Empty, Grid, Skeleton } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
-import { type DragEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type DragEvent, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { ISO_DATE, compareTime, dueState } from '@/lib/dates';
 import { CATEGORIES, CATEGORY_META, type Todo } from '@/lib/todo';
 import { setCompleted, setDueDate } from '@/lib/todoRepository';
@@ -13,6 +13,43 @@ import { useTodoActions } from './TodoActions';
 
 const PANEL_KEY = 'calendar.panelCollapsed';
 
+/**
+ * The day panel's collapsed state, remembered per browser in localStorage.
+ * Read through useSyncExternalStore: the server snapshot (`false`) keeps
+ * hydration stable, then React switches to the stored value on the client.
+ */
+const panelListeners = new Set<() => void>();
+let panelFallback = false; // used when localStorage is unavailable
+
+function readPanelCollapsed(): boolean {
+  try {
+    return localStorage.getItem(PANEL_KEY) === '1';
+  } catch {
+    return panelFallback;
+  }
+}
+
+function writePanelCollapsed(collapsed: boolean) {
+  panelFallback = collapsed;
+  try {
+    localStorage.setItem(PANEL_KEY, collapsed ? '1' : '0');
+  } catch {}
+  panelListeners.forEach((l) => l());
+}
+
+function subscribePanel(listener: () => void) {
+  panelListeners.add(listener);
+  // Keep other tabs in sync too.
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === PANEL_KEY) listener();
+  };
+  window.addEventListener('storage', onStorage);
+  return () => {
+    panelListeners.delete(listener);
+    window.removeEventListener('storage', onStorage);
+  };
+}
+
 export default function Calendar() {
   const { todos, loading, openAdd, openEdit } = useTodoActions();
   const screens = Grid.useBreakpoint();
@@ -21,21 +58,10 @@ export default function Calendar() {
   const { message } = App.useApp();
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const dropCell = useRef<HTMLElement | null>(null);
-  const [panelCollapsed, setPanelCollapsed] = useState(false);
-
-  // Remember the panel state per browser (read after mount to keep hydration stable).
-  useEffect(() => {
-    try {
-      if (localStorage.getItem(PANEL_KEY) === '1') setPanelCollapsed(true);
-    } catch {}
-  }, []);
+  const panelCollapsed = useSyncExternalStore(subscribePanel, readPanelCollapsed, () => false);
 
   function togglePanel() {
-    const next = !panelCollapsed;
-    setPanelCollapsed(next);
-    try {
-      localStorage.setItem(PANEL_KEY, next ? '1' : '0');
-    } catch {}
+    writePanelCollapsed(!panelCollapsed);
   }
 
   /** Tasks grouped by due date, built once per data change. */

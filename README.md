@@ -35,7 +35,7 @@ On first run the list is empty. Click **Load sample tasks** to try the app with 
 | Import CSV / Excel | **Import** → upload `.csv`, `.xlsx` or `.xls` → review each row (errors and duplicates shown) → import. A template can be downloaded. |
 | Export to Excel | **Export Excel** → `todos-YYYY-MM-DD.xlsx` with a *Tasks* sheet (real Excel dates, filters) and a *Summary* sheet. When a search or filter is active you can export the current view or everything. |
 | Calendar view (extra) | `/calendar`: month grid, tasks coloured by category, side panel for the selected day, "Add task on this day" |
-| Drag-and-drop reordering (extra) | Drag the handle (mouse or keyboard: focus it, Space, arrow keys). Enabled in **Manual order** with no search or filter, so the visible order is the stored order. Row menu also has *Move to top / bottom*. |
+| Drag-and-drop reordering (extra) | Drag the handle (mouse or keyboard: focus it, Space, arrow keys). Enabled in **Manual order** with no search or filter, so the visible order is the stored order. Row menu also has *Move to top / bottom*. In Calendar view, hold click on the task will allow you to drag to other date, the date will be updated after click released. |
 
 Search, filters, sort, page and page size are kept in the URL (e.g. `/?q=report&status=active&sort=due_asc`), so the view survives a reload and can be shared.
 
@@ -54,15 +54,18 @@ Dexie's `useLiveQuery` re-renders the UI whenever the data changes, including ch
 
 ## Import format
 
-The first sheet is read; the header row is matched loosely (e.g. *Title* or *Task*, *Due Date* or *Due*).
+The first sheet is read and row 1 must be the header row. Headers are matched loosely: case, spaces and punctuation are ignored (`Due Date`, `due_date` and `DUE-DATE` are the same), and each column also accepts the alternative names below.
 
-| Column | Required | Accepted values |
-| --- | --- | --- |
-| Title | Yes | Up to 200 characters |
-| Description | No | Up to 2000 characters |
-| Category | Yes | Work, Personal, Urgent (any case) |
-| Due Date | No | Excel date cells, `YYYY-MM-DD`, `DD/MM/YYYY`, `3 Dec 2026` |
-| Completed | No | Yes/No, Done/Open, True/False, 1/0 |
+| Column | Also accepted as | Required | Accepted values |
+| --- | --- | --- | --- |
+| Title | Task, Task Name, Name, Todo, Item | Yes | Up to 200 characters |
+| Description | Desc, Details, Notes, Note | No | Up to 2000 characters |
+| Category | Type, List, Tag | Yes | Work, Personal, Urgent (any case) |
+| Due Date | Due, Date, Deadline | No | Excel date cells, `YYYY-MM-DD`, `DD/MM/YYYY`, `3 Dec 2026` |
+| Due Time | Time, Start Time, At | No | Excel time cells, `HH:mm` (24h), `2:30 PM`, `6pm`; needs a due date |
+| Completed | Done, Status, Complete, Is Completed | No | Yes/No, Done/Open, True/False, 1/0 |
+
+If no Title column is found the whole file is rejected. Other unrecognised columns are ignored. When two headers match the same column (e.g. *Date* and *Due Date*), the leftmost one is used.
 
 Day-first is assumed for numeric dates (`03/12/2026` is 3 December). Rows matching an existing task (same title and due date) are flagged as duplicates and skipped by default.
 
