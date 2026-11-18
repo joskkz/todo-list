@@ -90,7 +90,7 @@ export default function TodoForm({ editing, defaultDueDate, onCancel, onSubmit }
           ))}
         </Radio.Group>
       </Form.Item>
-      <Form.Item name="dueDate" label="Due date" rules={[{ required: true, message: 'Please pick a due date.'}]}>
+      <Form.Item name="dueDate" label="Due date">
         <DatePicker format="D MMM YYYY" style={{ width: 220 }} placeholder="No due date" />
       </Form.Item>
       <Form.Item name="dueTime" label="Time">
