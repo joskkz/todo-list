@@ -12,7 +12,7 @@ npm install
 npm run dev        # http://localhost:3000
 ```
 
-On first run the list is empty. Click **Load sample tasks** to try the app with demo data. In ```data/```, there are .xlsx files for you to test the import function. 
+On first run the list is empty. Click **Load sample tasks** to try the app with demo data. The `demo/` folder has two `.xlsx` files for testing the import: `tasks-success.xlsx` (all rows valid) and `tasks-errors.xlsx` (rows with validation errors).
 
 | Script | What it does |
 | --- | --- |
@@ -27,7 +27,7 @@ On first run the list is empty. Click **Load sample tasks** to try the app with 
 | Requirement | Where |
 | --- | --- |
 | List, add, edit, delete, mark complete/incomplete | List view; Add/Edit dialog; delete asks for confirmation and offers **Undo** |
-| Due date per task | Date picker; "Today" / "Tomorrow" labels; yellow **!** when due within 2 days, red **▲!** when past due |
+| Due date per task | Date picker, with an optional time (tasks with a time sort before untimed ones on the same day); "Today" / "Tomorrow" labels; yellow **!** when due within 2 days, red **▲!** when past due |
 | Categories (Work, Personal, Urgent) | Radio choice in the form; one colour per category everywhere |
 | Pagination | 5 / 10 / 15 / 20 per page, Previous / Next / page numbers, "Page X of Y · N tasks" |
 | Search, status filter, sort by due date | Toolbar; search covers title and description; undated tasks always sort last |
@@ -72,15 +72,18 @@ Day-first is assumed for numeric dates (`03/12/2026` is 3 December). Rows matchi
 ## Project structure
 
 ```
+demo/                         # sample .xlsx files for testing the import
 src/
 ├── app/                      # Next.js routes (required by the App Router)
 │   ├── layout.tsx            # antd registry, providers, <App>
+│   ├── globals.css           # global styles
 │   ├── page.tsx              # List view → <TodoList />
 │   └── calendar/page.tsx     # Calendar view → <Calendar />
 ├── components/
 │   ├── TodoList.tsx          # list page: summary, filters, table, pagination, empty states
 │   ├── TodoItem.tsx          # one task: row pieces (drag handle, checkbox, actions) and phone card
 │   ├── Calendar.tsx          # month calendar with tasks per day
+│   ├── *.module.css          # component styles (TodoList, Calendar, TaskBits)
 │   ├── AddTodo.tsx           # "New task" dialog
 │   ├── EditTodo.tsx          # "Edit task" dialog
 │   ├── TodoForm.tsx          # form fields shared by AddTodo and EditTodo
@@ -90,6 +93,7 @@ src/
 │   ├── Providers.tsx         # antd config + TodoActions provider
 │   └── TaskBits.tsx          # category tag, due-date icons, completed icon
 ├── App.tsx                   # app shell: header, view switch, import, export, add
+├── App.module.css            # app shell styles
 ├── hooks/
 │   ├── useTodos.ts           # live task list from IndexedDB
 │   └── useTodoQuery.ts       # view state synced with the URL
@@ -102,6 +106,7 @@ src/
     ├── dates.ts              # due-soon / overdue rules, labels
     ├── importTodos.ts        # CSV/Excel parsing and row validation
     ├── exportTodos.ts        # Excel report + import template
+    ├── sampleData.ts         # "Load sample tasks" demo data (dates relative to today)
     └── __tests__/            # unit tests
 ```
 
@@ -112,4 +117,4 @@ UI components never call IndexedDB directly; they go through `todoRepository.ts`
 - **Drag-and-drop library:** the brief suggests `react-beautiful-dnd`, which is deprecated and does not support React 18 StrictMode or React 19. This app uses **dnd-kit** instead (maintained, accessible, keyboard support).
 - **SheetJS** is installed from the official SheetJS CDN (`cdn.sheetjs.com`), because the `xlsx` package on the public npm registry is outdated and has known vulnerabilities.
 - **Drag ordering** uses fractional keys: a move writes only the moved task; keys are renumbered only if they get too close together.
-- Dates are stored as `YYYY-MM-DD` (no time), so a due date never shifts between time zones.
+- Due dates are stored as `YYYY-MM-DD` and the optional time separately as `HH:mm` (local, no time zone), so a due date never shifts between time zones.
